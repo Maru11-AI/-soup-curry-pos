@@ -1,0 +1,529 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>スープカレー POSツール</title>
+  <style>
+    * { box-sizing: border-box; margin: 0; padding: 0; }
+    body { font-family: -apple-system, BlinkMacSystemFont, 'Hiragino Sans', 'Noto Sans JP', sans-serif; background: #f5f4f0; color: #1a1a18; min-height: 100vh; }
+
+    .app { max-width: 900px; margin: 0 auto; padding: 16px; }
+
+    /* Header */
+    .header { background: #1a1a18; color: #f5f4f0; border-radius: 12px; padding: 16px 20px; margin-bottom: 16px; display: flex; align-items: center; justify-content: space-between; }
+    .header-title { font-size: 16px; font-weight: 600; letter-spacing: 0.02em; }
+    .header-sub { font-size: 12px; opacity: 0.5; margin-top: 2px; }
+    .header-time { font-size: 13px; opacity: 0.6; font-variant-numeric: tabular-nums; }
+
+    /* Nav tabs */
+    .nav { display: flex; background: white; border-radius: 12px; padding: 4px; margin-bottom: 16px; gap: 4px; box-shadow: 0 1px 3px rgba(0,0,0,0.06); }
+    .tab { flex: 1; padding: 10px; border: none; border-radius: 8px; background: transparent; font-size: 13px; font-weight: 500; cursor: pointer; color: #888; font-family: inherit; transition: all 0.15s; }
+    .tab.active { background: #1a1a18; color: white; }
+    .tab:hover:not(.active) { background: #f5f4f0; color: #1a1a18; }
+
+    /* Sections */
+    .section { display: none; }
+    .section.active { display: block; }
+
+    /* Cards */
+    .card { background: white; border-radius: 12px; padding: 16px 20px; margin-bottom: 10px; box-shadow: 0 1px 3px rgba(0,0,0,0.06); }
+    .card-dashed { border: 1.5px dashed #d3d1c7; background: white; border-radius: 12px; padding: 16px 20px; margin-bottom: 10px; }
+
+    /* Buttons */
+    .btn { padding: 8px 16px; border-radius: 8px; border: 1px solid #d3d1c7; background: white; font-size: 13px; cursor: pointer; color: #1a1a18; font-family: inherit; font-weight: 500; transition: all 0.1s; }
+    .btn:hover { background: #f5f4f0; }
+    .btn-primary { background: #1a1a18; color: white; border-color: #1a1a18; }
+    .btn-primary:hover { opacity: 0.85; background: #1a1a18; }
+    .btn-danger { border-color: #f09595; color: #a32d2d; background: white; font-size: 12px; padding: 5px 10px; }
+    .btn-danger:hover { background: #fcebeb; }
+    .btn-sm { padding: 5px 12px; font-size: 12px; }
+
+    /* Payment buttons */
+    .pay-btns { display: grid; grid-template-columns: 1fr 1fr 1fr; gap: 10px; margin-top: 16px; }
+    .pay-btn { padding: 14px; border-radius: 10px; border: none; font-size: 14px; font-weight: 600; cursor: pointer; font-family: inherit; transition: opacity 0.1s; }
+    .pay-btn:hover { opacity: 0.88; }
+    .pay-cash { background: #f1efe8; color: #2c2c2a; border: 1px solid #b4b2a9; }
+    .pay-card { background: #185fa5; color: white; }
+    .pay-paypay { background: #e3001b; color: white; }
+
+    /* Input */
+    .inp { padding: 8px 12px; border-radius: 8px; border: 1px solid #d3d1c7; font-size: 14px; background: white; color: #1a1a18; font-family: inherit; width: 100%; outline: none; }
+    .inp:focus { border-color: #888; }
+    .label { font-size: 12px; color: #888; margin-bottom: 4px; display: block; }
+
+    /* Metric */
+    .metrics { display: grid; gap: 10px; }
+    .metrics-3 { grid-template-columns: repeat(3, 1fr); }
+    .metrics-2 { grid-template-columns: repeat(2, 1fr); }
+    .met { background: #f5f4f0; border-radius: 10px; padding: 14px 16px; }
+    .met-label { font-size: 12px; color: #888; margin-bottom: 4px; }
+    .met-val { font-size: 22px; font-weight: 600; }
+    .met-paypay { border-left: 3px solid #e3001b; }
+
+    /* Badges */
+    .badge { display: inline-flex; align-items: center; padding: 3px 10px; border-radius: 20px; font-size: 11px; font-weight: 600; }
+    .badge-curry { background: #faeeda; color: #633806; }
+    .badge-topping { background: #e1f5ee; color: #085041; }
+    .badge-side { background: #f1efe8; color: #444441; }
+    .badge-drink { background: #e6f1fb; color: #0c447c; }
+    .badge-cash { background: #f1efe8; color: #444441; }
+    .badge-card { background: #e6f1fb; color: #0c447c; }
+    .badge-paypay { background: #fcebeb; color: #a32d2d; }
+
+    /* Table grid */
+    .table-grid { display: grid; grid-template-columns: repeat(4, 1fr); gap: 8px; margin-bottom: 20px; }
+    .table-btn { padding: 14px 8px; border-radius: 10px; border: 1px solid #d3d1c7; background: #f5f4f0; cursor: pointer; text-align: center; font-family: inherit; transition: all 0.1s; }
+    .table-btn .t-num { font-size: 14px; font-weight: 600; color: #1a1a18; }
+    .table-btn .t-sub { font-size: 11px; color: #888; margin-top: 3px; }
+    .table-btn.occupied { border-color: #ef9f27; background: #faeeda; }
+    .table-btn.occupied .t-num { color: #633806; }
+    .table-btn.occupied .t-sub { color: #85501b; }
+    .table-btn.selected { border-color: #1d9e75; background: #e1f5ee; }
+    .table-btn.selected .t-num { color: #085041; }
+    .table-btn.selected .t-sub { color: #0f6e56; }
+
+    /* Two-col layout */
+    .two-col { display: grid; grid-template-columns: 1fr 1fr; gap: 16px; align-items: start; }
+
+    /* Order row */
+    .order-row { display: flex; align-items: center; justify-content: space-between; padding: 9px 0; border-bottom: 1px solid #f1efe8; }
+    .order-row:last-child { border-bottom: none; }
+    .qty-ctrl { display: flex; align-items: center; gap: 10px; }
+    .qty-btn { width: 26px; height: 26px; border-radius: 50%; border: 1px solid #d3d1c7; background: white; cursor: pointer; font-size: 16px; color: #1a1a18; display: flex; align-items: center; justify-content: center; font-family: inherit; line-height: 1; transition: background 0.1s; }
+    .qty-btn:hover { background: #f5f4f0; }
+
+    /* Menu item row */
+    .menu-row { display: flex; align-items: center; justify-content: space-between; padding: 10px 20px; background: white; border-radius: 10px; margin-bottom: 6px; box-shadow: 0 1px 3px rgba(0,0,0,0.05); }
+
+    /* Section header */
+    .sec-head { display: flex; align-items: center; justify-content: space-between; margin-bottom: 14px; }
+    .sec-title { font-size: 15px; font-weight: 600; }
+
+    /* Divider */
+    hr { border: none; border-top: 1px solid #f1efe8; margin: 10px 0; }
+
+    /* Total row */
+    .total-row { display: flex; justify-content: space-between; align-items: baseline; padding-top: 12px; margin-top: 6px; }
+    .total-label { font-size: 15px; font-weight: 600; }
+    .total-val { font-size: 26px; font-weight: 700; }
+
+    /* CSV button */
+    .csv-btn { display: inline-flex; align-items: center; gap: 6px; padding: 8px 14px; border-radius: 8px; border: 1px solid #1d9e75; background: #e1f5ee; color: #085041; font-size: 12px; font-weight: 600; cursor: pointer; font-family: inherit; transition: background 0.1s; }
+    .csv-btn:hover { background: #9fe1cb; }
+
+    /* Toast */
+    #toast { display: none; position: fixed; bottom: 24px; left: 50%; transform: translateX(-50%); background: #1a1a18; color: white; padding: 12px 20px; border-radius: 10px; font-size: 14px; font-weight: 500; white-space: nowrap; z-index: 999; box-shadow: 0 4px 16px rgba(0,0,0,0.2); }
+
+    /* History row */
+    .hist-row { display: flex; align-items: center; justify-content: space-between; }
+
+    /* Empty state */
+    .empty { text-align: center; color: #888; font-size: 14px; padding: 3rem 0; }
+    .empty small { display: block; margin-top: 6px; font-size: 12px; }
+
+    @media (max-width: 600px) {
+      .two-col { grid-template-columns: 1fr; }
+      .metrics-3 { grid-template-columns: 1fr 1fr; }
+      .table-grid { grid-template-columns: repeat(4, 1fr); }
+      .pay-btns { grid-template-columns: 1fr; }
+    }
+  </style>
+</head>
+<body>
+<div class="app">
+  <div class="header">
+    <div>
+      <div class="header-title">スープカレー POSツール</div>
+      <div class="header-sub">目黒店</div>
+    </div>
+    <div class="header-time" id="clock"></div>
+  </div>
+
+  <nav class="nav">
+    <button class="tab active" id="t-menu" onclick="sw('menu')">メニュー</button>
+    <button class="tab" id="t-order" onclick="sw('order')">注文</button>
+    <button class="tab" id="t-checkout" onclick="sw('checkout')">会計</button>
+    <button class="tab" id="t-sales" onclick="sw('sales')">売上</button>
+  </nav>
+
+  <div class="section active" id="s-menu"></div>
+  <div class="section" id="s-order"></div>
+  <div class="section" id="s-checkout"></div>
+  <div class="section" id="s-sales"></div>
+</div>
+
+<div id="toast"></div>
+
+<script>
+// ===== STATE =====
+const S = {
+  menus: [
+    {id:1, name:'チキンスープカレー', price:1200, cat:'スープカレー'},
+    {id:2, name:'ベジタブルスープカレー', price:1100, cat:'スープカレー'},
+    {id:3, name:'ラムスープカレー', price:1400, cat:'スープカレー'},
+    {id:4, name:'エビスープカレー', price:1500, cat:'スープカレー'},
+    {id:5, name:'チーズトッピング', price:200, cat:'トッピング'},
+    {id:6, name:'ゆで卵', price:100, cat:'トッピング'},
+    {id:7, name:'アボカド', price:200, cat:'トッピング'},
+    {id:8, name:'ライス(大)', price:100, cat:'サイド'},
+    {id:9, name:'ナン', price:300, cat:'サイド'},
+    {id:10, name:'チャイ', price:400, cat:'ドリンク'},
+    {id:11, name:'ラッシー', price:400, cat:'ドリンク'},
+    {id:12, name:'水', price:0, cat:'ドリンク'},
+  ],
+  orders: {},   // tableNo -> [{menuId, name, price, qty}]
+  done: [],     // completed orders
+  nid: 13,
+  oT: null,     // selected table in order tab
+  cT: null,     // selected table in checkout tab
+};
+
+const CATS = ['スープカレー', 'トッピング', 'サイド', 'ドリンク'];
+const CAT_BADGE = {
+  'スープカレー': 'badge-curry',
+  'トッピング': 'badge-topping',
+  'サイド': 'badge-side',
+  'ドリンク': 'badge-drink',
+};
+const METHODS = {
+  cash:   { label: '現金',   badge: 'badge-cash' },
+  card:   { label: 'カード', badge: 'badge-card' },
+  paypay: { label: 'PayPay', badge: 'badge-paypay' },
+};
+
+// ===== CLOCK =====
+function updateClock() {
+  document.getElementById('clock').textContent =
+    new Date().toLocaleTimeString('ja-JP', {hour: '2-digit', minute: '2-digit', second: '2-digit'});
+}
+setInterval(updateClock, 1000);
+updateClock();
+
+// ===== NAVIGATION =====
+function sw(tab) {
+  ['menu','order','checkout','sales'].forEach(t => {
+    document.getElementById('s-'+t).className = 'section' + (t===tab ? ' active' : '');
+    document.getElementById('t-'+t).className = 'tab' + (t===tab ? ' active' : '');
+  });
+  rend(tab);
+}
+
+function rend(tab) {
+  document.getElementById('s-'+tab).innerHTML = {
+    menu: rMenu, order: rOrder, checkout: rCheckout, sales: rSales
+  }[tab]();
+}
+
+// ===== HELPERS =====
+const fmt = n => '¥' + n.toLocaleString();
+const bdg = cat => `<span class="badge ${CAT_BADGE[cat]||''}">${cat}</span>`;
+const mBdg = m => `<span class="badge ${METHODS[m].badge}">${METHODS[m].label}</span>`;
+const today = () => new Date().toLocaleDateString('ja-JP', {year:'numeric', month:'2-digit', day:'2-digit'}).replace(/\//g,'-');
+
+// ===== MENU TAB =====
+function rMenu() {
+  return `
+    <div class="sec-head">
+      <span class="sec-title">メニュー一覧 (${S.menus.length}品)</span>
+      <button class="csv-btn" onclick="exportCSV('menu')">↓ CSVエクスポート</button>
+    </div>
+    ${CATS.map(cat => {
+      const items = S.menus.filter(m => m.cat === cat);
+      return `
+        <div style="margin-bottom:20px">
+          <div style="display:flex;align-items:center;gap:8px;margin-bottom:8px">
+            ${bdg(cat)}
+            <span style="font-size:12px;color:#888">${items.length}品</span>
+          </div>
+          ${items.map(m => `
+            <div class="menu-row">
+              <span style="font-size:14px">${m.name}</span>
+              <div style="display:flex;align-items:center;gap:12px">
+                <span style="font-size:15px;font-weight:600">${fmt(m.price)}</span>
+                <button class="btn btn-danger" onclick="delM(${m.id})">削除</button>
+              </div>
+            </div>
+          `).join('')}
+        </div>`;
+    }).join('')}
+    <div class="card-dashed">
+      <div style="font-size:14px;font-weight:600;margin-bottom:14px">+ 新しいメニューを追加</div>
+      <div style="display:grid;grid-template-columns:1fr 1fr;gap:12px;margin-bottom:12px">
+        <div>
+          <label class="label">メニュー名</label>
+          <input class="inp" id="nn" placeholder="例：ポークスープカレー">
+        </div>
+        <div>
+          <label class="label">価格（円）</label>
+          <input class="inp" id="np" type="number" placeholder="1300">
+        </div>
+      </div>
+      <div style="margin-bottom:14px">
+        <label class="label">カテゴリー</label>
+        <select class="inp" id="nc">${CATS.map(c => `<option>${c}</option>`).join('')}</select>
+      </div>
+      <button class="btn btn-primary" onclick="addM()">追加する</button>
+    </div>`;
+}
+
+function addM() {
+  const n = document.getElementById('nn').value.trim();
+  const p = parseInt(document.getElementById('np').value) || 0;
+  const c = document.getElementById('nc').value;
+  if (!n) return;
+  S.menus.push({id: S.nid++, name: n, price: p, cat: c});
+  rend('menu');
+}
+function delM(id) { S.menus = S.menus.filter(m => m.id !== id); rend('menu'); }
+
+// ===== ORDER TAB =====
+function rOrder() {
+  const occ = Object.keys(S.orders).filter(t => S.orders[t]?.length > 0).map(Number);
+  return `
+    <div style="font-size:14px;font-weight:600;margin-bottom:12px">テーブルを選択</div>
+    <div class="table-grid">
+      ${[1,2,3,4,5,6,7,8].map(n => {
+        const o = occ.includes(n), sel = S.oT === n;
+        const cls = sel ? 'table-btn selected' : o ? 'table-btn occupied' : 'table-btn';
+        const cnt = S.orders[n]?.reduce((s,i) => s+i.qty, 0) || 0;
+        return `
+          <button class="${cls}" onclick="selOT(${n})">
+            <div class="t-num">席 ${n}</div>
+            <div class="t-sub">${o ? cnt+'品' : '空席'}</div>
+          </button>`;
+      }).join('')}
+    </div>
+    ${S.oT ? `
+      <div class="two-col">
+        <div>
+          <div style="font-size:13px;font-weight:600;margin-bottom:12px">席 ${S.oT} にメニューを追加</div>
+          ${CATS.map(cat => `
+            <div style="margin-bottom:16px">
+              <div style="margin-bottom:8px">${bdg(cat)}</div>
+              ${S.menus.filter(m => m.cat===cat).map(m => `
+                <div class="menu-row">
+                  <div>
+                    <div style="font-size:13px;font-weight:500">${m.name}</div>
+                    <div style="font-size:12px;color:#888">${fmt(m.price)}</div>
+                  </div>
+                  <button class="btn btn-primary btn-sm" onclick="addO(${m.id})">追加</button>
+                </div>
+              `).join('')}
+            </div>
+          `).join('')}
+        </div>
+        <div>
+          <div style="font-size:13px;font-weight:600;margin-bottom:12px">席 ${S.oT} の注文内容</div>
+          <div class="card">
+            ${!S.orders[S.oT]?.length
+              ? '<div style="color:#888;font-size:13px;text-align:center;padding:20px 0">まだ追加されていません</div>'
+              : S.orders[S.oT].map(i => `
+                  <div class="order-row">
+                    <div>
+                      <div style="font-size:13px;font-weight:500">${i.name}</div>
+                      <div style="font-size:12px;color:#888">${fmt(i.price)}</div>
+                    </div>
+                    <div class="qty-ctrl">
+                      <button class="qty-btn" onclick="cQ(${S.oT},${i.menuId},-1)">−</button>
+                      <span style="font-size:13px;font-weight:600;min-width:18px;text-align:center">${i.qty}</span>
+                      <button class="qty-btn" onclick="cQ(${S.oT},${i.menuId},1)">+</button>
+                    </div>
+                  </div>
+                `).join('') + `
+                <div class="total-row">
+                  <span style="font-size:13px;color:#888">小計</span>
+                  <span style="font-size:18px;font-weight:700">${fmt(S.orders[S.oT].reduce((s,i)=>s+i.price*i.qty,0))}</span>
+                </div>`
+            }
+          </div>
+        </div>
+      </div>
+    ` : '<div class="empty">テーブルを選んでください</div>'}`;
+}
+
+function selOT(n) { S.oT = S.oT===n ? null : n; rend('order'); }
+function addO(mid) {
+  const m = S.menus.find(x => x.id===mid);
+  if (!m || !S.oT) return;
+  if (!S.orders[S.oT]) S.orders[S.oT] = [];
+  const ex = S.orders[S.oT].find(x => x.menuId===mid);
+  if (ex) ex.qty++;
+  else S.orders[S.oT].push({menuId:mid, name:m.name, price:m.price, qty:1});
+  rend('order');
+}
+function cQ(tbl, mid, d) {
+  if (!S.orders[tbl]) return;
+  const it = S.orders[tbl].find(x => x.menuId===mid);
+  if (!it) return;
+  it.qty += d;
+  if (it.qty <= 0) S.orders[tbl] = S.orders[tbl].filter(x => x.menuId!==mid);
+  rend('order');
+}
+
+// ===== CHECKOUT TAB =====
+function rCheckout() {
+  const occ = Object.keys(S.orders).filter(t => S.orders[t]?.length > 0).map(Number);
+  if (!occ.length) return `
+    <div class="empty">
+      注文中のテーブルがありません
+      <small>「注文」タブから注文を受け付けてください</small>
+    </div>`;
+  return `
+    <div style="font-size:14px;font-weight:600;margin-bottom:12px">会計するテーブルを選択</div>
+    <div class="table-grid">
+      ${occ.map(n => {
+        const sel = S.cT===n;
+        const total = S.orders[n].reduce((s,i)=>s+i.price*i.qty,0);
+        return `
+          <button class="${sel?'table-btn selected':'table-btn occupied'}" onclick="selCT(${n})">
+            <div class="t-num">席 ${n}</div>
+            <div class="t-sub">${fmt(total)}</div>
+          </button>`;
+      }).join('')}
+    </div>
+    ${S.cT && S.orders[S.cT] ? `
+      <div class="card">
+        <div style="font-size:14px;font-weight:600;margin-bottom:14px">席 ${S.cT} — お会計明細</div>
+        ${S.orders[S.cT].map(i => `
+          <div class="order-row">
+            <span style="font-size:14px">${i.name} × ${i.qty}</span>
+            <span style="font-size:14px;font-weight:500">${fmt(i.price*i.qty)}</span>
+          </div>
+        `).join('')}
+        <div class="total-row">
+          <span class="total-label">合計</span>
+          <span class="total-val">${fmt(S.orders[S.cT].reduce((s,i)=>s+i.price*i.qty,0))}</span>
+        </div>
+        <div class="pay-btns">
+          <button class="pay-btn pay-cash" onclick="pay('cash')">現金</button>
+          <button class="pay-btn pay-card" onclick="pay('card')">カード</button>
+          <button class="pay-btn pay-paypay" onclick="pay('paypay')">PayPay</button>
+        </div>
+      </div>
+    ` : ''}`;
+}
+
+function selCT(n) { S.cT = S.cT===n ? null : n; rend('checkout'); }
+function pay(method) {
+  if (!S.cT || !S.orders[S.cT]) return;
+  const items = [...S.orders[S.cT]];
+  const total = items.reduce((s,i)=>s+i.price*i.qty,0);
+  const t = S.cT;
+  const at = new Date().toLocaleTimeString('ja-JP',{hour:'2-digit',minute:'2-digit'});
+  S.done.push({table:t, items, total, method, at, date:today()});
+  delete S.orders[t];
+  S.cT = null;
+  if (S.oT===t) S.oT = null;
+  showToast(`席 ${t} 会計完了（${METHODS[method].label} / ${fmt(total)}）`);
+  rend('checkout');
+}
+
+// ===== SALES TAB =====
+function rSales() {
+  const total = S.done.reduce((s,o)=>s+o.total,0);
+  const cnt = S.done.length;
+  const avg = cnt > 0 ? Math.round(total/cnt) : 0;
+  const byM = {cash:0, card:0, paypay:0};
+  S.done.forEach(o => byM[o.method] += o.total);
+  const ic = {};
+  S.done.forEach(o => o.items.forEach(i => { ic[i.name] = (ic[i.name]||0) + i.qty; }));
+  const top = Object.entries(ic).sort((a,b)=>b[1]-a[1]).slice(0,5);
+
+  return `
+    <div class="sec-head">
+      <span class="sec-title">本日の売上</span>
+      <div style="display:flex;gap:8px">
+        <button class="csv-btn" onclick="exportCSV('orders')">↓ 会計履歴</button>
+        <button class="csv-btn" onclick="exportCSV('items')">↓ 明細</button>
+      </div>
+    </div>
+    <div class="metrics metrics-3" style="margin-bottom:12px">
+      <div class="met"><div class="met-label">売上合計</div><div class="met-val">${fmt(total)}</div></div>
+      <div class="met"><div class="met-label">客数（組）</div><div class="met-val">${cnt}組</div></div>
+      <div class="met"><div class="met-label">客単価</div><div class="met-val">${fmt(avg)}</div></div>
+    </div>
+    <div class="metrics metrics-3" style="margin-bottom:20px">
+      <div class="met"><div class="met-label">現金</div><div class="met-val" style="font-size:18px">${fmt(byM.cash)}</div></div>
+      <div class="met"><div class="met-label">カード</div><div class="met-val" style="font-size:18px">${fmt(byM.card)}</div></div>
+      <div class="met met-paypay"><div class="met-label">PayPay</div><div class="met-val" style="font-size:18px">${fmt(byM.paypay)}</div></div>
+    </div>
+    ${top.length > 0 ? `
+      <div style="font-size:13px;font-weight:600;margin-bottom:10px">売れ筋 TOP${top.length}</div>
+      <div class="card" style="margin-bottom:20px">
+        ${top.map(([n,q],i) => `
+          <div class="order-row">
+            <div style="display:flex;align-items:center;gap:10px">
+              <span style="font-size:13px;color:#888;min-width:18px">${i+1}</span>
+              <span style="font-size:14px">${n}</span>
+            </div>
+            <span style="font-size:13px;color:#888">${q}点</span>
+          </div>
+        `).join('')}
+      </div>
+    ` : ''}
+    <div style="font-size:13px;font-weight:600;margin-bottom:10px">会計履歴</div>
+    ${!S.done.length
+      ? '<div class="empty">まだ会計が完了していません</div>'
+      : S.done.slice().reverse().map(o => `
+          <div class="card">
+            <div class="hist-row">
+              <div>
+                <div style="font-size:13px;font-weight:600">席 ${o.table} — ${o.at}</div>
+                <div style="font-size:12px;color:#888;margin-top:3px">${o.items.map(i=>i.name+(i.qty>1?' ×'+i.qty:'')).join(' / ')}</div>
+              </div>
+              <div style="text-align:right">
+                <div style="font-size:16px;font-weight:700;margin-bottom:4px">${fmt(o.total)}</div>
+                ${mBdg(o.method)}
+              </div>
+            </div>
+          </div>
+        `).join('')
+    }`;
+}
+
+// ===== CSV EXPORT =====
+function exportCSV(type) {
+  if (type !== 'menu' && !S.done.length) { showToast('エクスポートするデータがありません'); return; }
+  const d = today();
+  let rows, filename;
+  if (type === 'orders') {
+    rows = [['日付','時刻','席番号','合計金額','支払方法','注文内容']];
+    S.done.forEach(o => rows.push([o.date, o.at, `席${o.table}`, o.total, METHODS[o.method].label, o.items.map(i=>`${i.name}×${i.qty}`).join(' / ')]));
+    filename = `会計履歴_${d}.csv`;
+  } else if (type === 'items') {
+    rows = [['日付','時刻','席番号','メニュー名','カテゴリー','単価','数量','小計','支払方法']];
+    S.done.forEach(o => o.items.forEach(i => {
+      const cat = S.menus.find(m=>m.name===i.name)?.cat || '';
+      rows.push([o.date, o.at, `席${o.table}`, i.name, cat, i.price, i.qty, i.price*i.qty, METHODS[o.method].label]);
+    }));
+    filename = `注文明細_${d}.csv`;
+  } else {
+    rows = [['カテゴリー','メニュー名','価格']];
+    S.menus.forEach(m => rows.push([m.cat, m.name, m.price]));
+    filename = `メニュー一覧_${d}.csv`;
+  }
+  const csv = rows.map(r => r.map(c => `"${String(c).replace(/"/g,'""')}"`).join(',')).join('\n');
+  const blob = new Blob(['\uFEFF'+csv], {type:'text/csv;charset=utf-8;'});
+  const url = URL.createObjectURL(blob);
+  const a = document.createElement('a');
+  a.href = url; a.download = filename; a.click();
+  URL.revokeObjectURL(url);
+  showToast(`${filename} をダウンロードしました`);
+}
+
+// ===== TOAST =====
+let toastTimer;
+function showToast(msg) {
+  const el = document.getElementById('toast');
+  el.textContent = msg;
+  el.style.display = 'block';
+  clearTimeout(toastTimer);
+  toastTimer = setTimeout(() => { el.style.display = 'none'; }, 3000);
+}
+
+// ===== INIT =====
+rend('menu');
+</script>
+</body>
+</html>
